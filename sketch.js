@@ -211,6 +211,7 @@ let isRectangle = false;
 let showSpiral = false;
 let useImageMask = false;
 let showBgImage = true;
+let rotateImageWithShape = true;
 // --- Image Controls Panel UI Variables ---
 let imageControlsPanel;
 let fgZoomSlider, fgOffsetXSlider, fgOffsetYSlider;
@@ -263,6 +264,7 @@ let setRectangleMode;
 let setSpiralVisibility;
 let setImageMaskEnabled;
 let setBgImageVisible;
+let setRotateImageWithShape;
 let setIsAnimated;
 let loadPreset;
 let isSidebarHidden = false;
@@ -538,21 +540,37 @@ function setup() {
   function wrapSlider(elementId) {
     const el = document.getElementById(elementId);
     const valBadge = document.getElementById(elementId + '-val');
+    let currentValue = el ? parseFloat(el.value) : 0;
 
     if (el) {
       el.addEventListener('input', () => {
-        if (valBadge) valBadge.textContent = el.value;
+        currentValue = parseFloat(el.value);
+        if (valBadge) valBadge.value = el.value;
       });
-      if (valBadge) valBadge.textContent = el.value;
+      if (valBadge) valBadge.value = el.value;
+    }
+
+    if (valBadge) {
+      valBadge.addEventListener('input', () => {
+        let typedVal = parseFloat(valBadge.value);
+        if (!isNaN(typedVal)) {
+          currentValue = typedVal;
+          if (el) {
+            el.value = typedVal;
+          }
+        }
+      });
     }
 
     return {
-      value: () => el ? parseFloat(el.value) : 0,
+      value: () => currentValue,
       updateValue: (val) => {
+        currentValue = val;
         if (el) {
           el.value = val;
-          if (valBadge) valBadge.textContent = val;
-          el.dispatchEvent(new Event('input'));
+        }
+        if (valBadge) {
+          valBadge.value = val;
         }
       }
     };
@@ -643,6 +661,19 @@ function setup() {
     }
   };
 
+  setRotateImageWithShape = function (rotate) {
+    rotateImageWithShape = rotate;
+    const btn = document.getElementById('mask-image-rotate');
+    if (btn) {
+      btn.innerHTML = rotateImageWithShape ? "Rotate Image: ON" : "Rotate Image: OFF";
+      if (rotateImageWithShape) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+  };
+
   setIsAnimated = function (animated) {
     isAnimated = animated;
     const playIcon = document.getElementById('play-icon');
@@ -680,6 +711,13 @@ function setup() {
     });
   }
 
+  const maskImageRotateEl = document.getElementById('mask-image-rotate');
+  if (maskImageRotateEl) {
+    maskImageRotateEl.addEventListener('click', () => {
+      setRotateImageWithShape(!rotateImageWithShape);
+    });
+  }
+
   const bgImageEnableEl = document.getElementById('bg-image-enable');
   if (bgImageEnableEl) {
     bgImageEnableEl.addEventListener('click', () => {
@@ -695,6 +733,7 @@ function setup() {
         isRectangle: isRectangle,
         useImageMask: useImageMask,
         showBgImage: showBgImage,
+        rotateImageWithShape: rotateImageWithShape,
         isAnimated: isAnimated,
         aspectRatio: currentRatio,
         base: {
@@ -754,14 +793,14 @@ function setup() {
   loadPreset = function (presetNum) {
     const data = PRESETS_DATA[presetNum];
     if (data) {
-      applyPresetData(data);
+      applyPresetData(data, true);
     } else {
       console.error("Preset not found:", presetNum);
     }
   };
 
   // --- Apply Preset Data Helper ---
-  window.applyPresetData = function (data) {
+  window.applyPresetData = function (data, keepCurrentImages = false) {
     if (data.base) {
       if (data.base.skew !== undefined) skewSlider.updateValue(data.base.skew);
       if (data.base.n !== undefined) nSlider.updateValue(data.base.n);
@@ -794,34 +833,36 @@ function setup() {
       if (data.image.bgOffsetX !== undefined) bgOffsetXSlider.updateValue(data.image.bgOffsetX);
       if (data.image.bgOffsetY !== undefined) bgOffsetYSlider.updateValue(data.image.bgOffsetY);
 
-      // Restore base64 custom uploaded images if present
-      if (data.image.fgDataUrl) {
-        img1DataUrl = data.image.fgDataUrl;
-        loadImage(img1DataUrl, (loaded) => {
-          img1 = loaded;
-          setImageMaskEnabled(true);
-        });
-        const labelEl = document.getElementById('mask-image-name');
-        if (labelEl) labelEl.textContent = "Uploaded Masked Image";
-      } else {
-        img1DataUrl = null;
-        img1 = defaultImg1;
-        const labelEl = document.getElementById('mask-image-name');
-        if (labelEl) labelEl.textContent = "image_1.jpg";
-      }
-      if (data.image.bgDataUrl) {
-        img2DataUrl = data.image.bgDataUrl;
-        loadImage(img2DataUrl, (loaded) => {
-          img2 = loaded;
-          setBgImageVisible(true);
-        });
-        const labelEl = document.getElementById('bg-image-name');
-        if (labelEl) labelEl.textContent = "Uploaded Background";
-      } else {
-        img2DataUrl = null;
-        img2 = defaultImg2;
-        const labelEl = document.getElementById('bg-image-name');
-        if (labelEl) labelEl.textContent = "image_2.jpg";
+      if (!keepCurrentImages) {
+        // Restore base64 custom uploaded images if present
+        if (data.image.fgDataUrl) {
+          img1DataUrl = data.image.fgDataUrl;
+          loadImage(img1DataUrl, (loaded) => {
+            img1 = loaded;
+            setImageMaskEnabled(true);
+          });
+          const labelEl = document.getElementById('mask-image-name');
+          if (labelEl) labelEl.textContent = "Uploaded Masked Image";
+        } else {
+          img1DataUrl = null;
+          img1 = defaultImg1;
+          const labelEl = document.getElementById('mask-image-name');
+          if (labelEl) labelEl.textContent = "image_1.jpg";
+        }
+        if (data.image.bgDataUrl) {
+          img2DataUrl = data.image.bgDataUrl;
+          loadImage(img2DataUrl, (loaded) => {
+            img2 = loaded;
+            setBgImageVisible(true);
+          });
+          const labelEl = document.getElementById('bg-image-name');
+          if (labelEl) labelEl.textContent = "Uploaded Background";
+        } else {
+          img2DataUrl = null;
+          img2 = defaultImg2;
+          const labelEl = document.getElementById('bg-image-name');
+          if (labelEl) labelEl.textContent = "image_2.jpg";
+        }
       }
     }
 
@@ -841,6 +882,12 @@ function setup() {
       setBgImageVisible(data.showBgImage);
     } else {
       setBgImageVisible(true);
+    }
+
+    if (data.rotateImageWithShape !== undefined) {
+      setRotateImageWithShape(data.rotateImageWithShape);
+    } else {
+      setRotateImageWithShape(true);
     }
 
     if (data.showSpiral !== undefined) {
@@ -1111,7 +1158,9 @@ function draw() {
     imgRenderBuffer.push();
     imgRenderBuffer.translate(imgRenderBuffer.width / 2, imgRenderBuffer.height / 2);
     imgRenderBuffer.translate(fgOffsetXSlider.value(), fgOffsetYSlider.value());
-    imgRenderBuffer.rotate(radians(masterRotation));
+    if (rotateImageWithShape) {
+      imgRenderBuffer.rotate(radians(masterRotation));
+    }
     imgRenderBuffer.scale(fgZoomSlider.value());
 
     // Scale image to cover the circle diameter (2 * full_circle_diam) preserving aspect ratio

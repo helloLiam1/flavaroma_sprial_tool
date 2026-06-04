@@ -359,6 +359,20 @@ canvas {
   padding: 2px 6px;
   border-radius: 4px;
   color: var(--text-primary);
+  width: 55px;
+  text-align: right;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.val-badge::-webkit-outer-spin-button,
+.val-badge::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.val-badge[type="number"] {
+  -moz-appearance: textfield;
 }
 
 /* Range Input Customization */
