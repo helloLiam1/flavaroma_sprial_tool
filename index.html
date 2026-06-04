@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" type="text/css" href="style.css">
+  <script src="libraries/p5.min.js"></script>
+  <script src="images_base64.js"></script>
+</head>
+
+<body>
+  <!-- Toggle UI Sidebar Button (Floating) -->
+  <button id="toggle-ui-btn" class="floating-toggle-btn" onclick="toggleSidebar()" title="Toggle Sidebar Controls">
+    <svg class="icon-hide" viewBox="0 0 24 24" width="20" height="20">
+      <path
+        d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z" />
+    </svg>
+  </button>
+
+  <div id="app">
+    <!-- Left Sidebar panel -->
+    <div id="controlPanel" class="sidebar">
+      <div class="sidebar-header">
+        <div class="title-area">
+        </div>
+        <button id="play-pause-btn" class="icon-btn-toggle" onclick="toggleAnimationState()"
+          title="Play/Pause Animation">
+          <svg id="play-icon" class="hidden" viewBox="0 0 24 24" width="18" height="18">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <svg id="pause-icon" viewBox="0 0 24 24" width="18" height="18">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Presets Container -->
+      <div class="presets-section">
+        <div class="presets-header">
+          <h3>Presets</h3>
+          <div class="presets-actions">
+            <button id="save-preset-btn" class="btn-action btn-save" title="Save Preset to File">
+              <svg viewBox="0 0 24 24" width="12" height="12">
+                <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z" />
+              </svg>
+              Save Preset
+            </button>
+            <label for="load-preset-input" class="btn-action btn-load" title="Load Preset from File">
+              <svg viewBox="0 0 24 24" width="12" height="12">
+                <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
+              </svg>
+              Load Preset
+            </label>
+            <input type="file" id="load-preset-input" accept=".json" style="display:none;" onchange="uploadPresetFile(this)">
+          </div>
+        </div>
+        <div class="preset-buttons-row">
+          <button class="preset-btn" onclick="loadPresetFile(1)">1</button>
+          <button class="preset-btn" onclick="loadPresetFile(2)">2</button>
+          <button class="preset-btn" onclick="loadPresetFile(3)">3</button>
+          <button class="preset-btn" onclick="loadPresetFile(4)">4</button>
+          <button class="preset-btn" onclick="loadPresetFile(5)">5</button>
+        </div>
+        <button id="toggle-width-anim-btn" class="btn-action block-btn active" style="margin-top: 10px; width: 100%;" onclick="toggleWidthAnimation()">
+          Animation: ON
+        </button>
+      </div>
+
+      <div class="scroll-area">
+
+        <!-- 1. Full Spiral Section -->
+        <div class="control-section" id="section-full-spiral">
+          <div class="section-header" onclick="toggleSection('section-full-spiral')">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L11 19.3c.31.2.68.32 1.07.3 1-.06 1.83-.87 1.91-1.87l-.02-.13c.03-.5-.11-.97-.38-1.37L9.33 11c.83-.45 1.79-.7 2.8-.7 3.31 0 6 2.69 6 6s-2.69 6-6 6z" />
+              </svg>
+              <span>Full Spiral</span>
+            </div>
+            <span class="chevron">▾</span>
+          </div>
+          <div class="section-body">
+            <!-- size (Full Circle Diameter) -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>size</span>
+                <span id="full-circle-diam-val" class="val-badge">400</span>
+              </div>
+              <input type="range" id="full-circle-diam" min="100" max="4000" step="10" value="400">
+            </div>
+            <!-- move left/right (Filter Location X) -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>move left/right</span>
+                <span id="filter-x-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="filter-x" min="-2000" max="2000" step="1" value="0">
+            </div>
+            <!-- move up/down (Filter Location Y) -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>move up/down</span>
+                <span id="filter-y-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="filter-y" min="-2000" max="2000" step="1" value="0">
+            </div>
+            <!-- hole size (Hole Radius) -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>hole size</span>
+                <span id="hole-radius-val" class="val-badge">20</span>
+              </div>
+              <input type="range" id="hole-radius" min="0" max="350" step="1" value="20">
+            </div>
+            <!-- hole left/right (Hole Offset X) -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>hole left/right</span>
+                <span id="hole-x-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="hole-x" min="-200" max="200" step="1" value="0">
+            </div>
+            <!-- hole up/down (Hole Offset Y) -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>hole up/down</span>
+                <span id="hole-y-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="hole-y" min="-200" max="200" step="1" value="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Ring Section -->
+        <div class="control-section collapsed" id="section-ring">
+          <div class="section-header" onclick="toggleSection('section-ring')">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4z" />
+              </svg>
+              <span>Ring</span>
+            </div>
+            <span class="chevron">▾</span>
+          </div>
+          <div class="section-body">
+            <!-- Rings (n) -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>number</span>
+                <span id="ring-n-val" class="val-badge">6</span>
+              </div>
+              <input type="range" id="ring-n" min="1" max="20" step="1" value="6">
+            </div>
+            <!-- offset ratio -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>offset</span>
+                <span id="ring-offset-val" class="val-badge">0.36</span>
+              </div>
+              <input type="range" id="ring-offset" min="0" max="1" step="0.01" value="0.36">
+            </div>
+            <!-- Size Gradient -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>Size Gradient</span>
+                <span id="ring-size-gradient-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="ring-size-gradient" min="-1" max="1" step="0.01" value="0">
+            </div>
+            <!-- Spiral Width -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>Spiral Width</span>
+                <span id="ring-spiral-width-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="ring-spiral-width" min="0" max="1" step="0.01" value="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Trapeziums Section -->
+        <div class="control-section collapsed" id="section-trapeziums">
+          <div class="section-header" onclick="toggleSection('section-trapeziums')">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path
+                  d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2z" />
+              </svg>
+              <span>Trapeziums</span>
+            </div>
+            <span class="chevron">▾</span>
+          </div>
+          <div class="section-body">
+            <!-- Shape Mode Toggle -->
+            <button id="shape-toggle-btn" class="btn-action block-btn">Turn into Rectangles</button>
+
+            <!-- Amount -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>number</span>
+                <span id="trapezium-amount-val" class="val-badge">24</span>
+              </div>
+              <input type="range" id="trapezium-amount" min="4" max="100" step="2" value="24">
+            </div>
+            <!-- Height Scale -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>height</span>
+                <span id="trapezium-height-val" class="val-badge">1.0</span>
+              </div>
+              <input type="range" id="trapezium-height" min="0.1" max="3.0" step="0.05" value="1.0">
+            </div>
+            <!-- Width 1 Scale -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>inner width</span>
+                <span id="trapezium-width1-val" class="val-badge">1.0</span>
+              </div>
+              <input type="range" id="trapezium-width1" min="0.1" max="3.0" step="0.05" value="1.0">
+            </div>
+            <!-- Width 2 Scale -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>outer width</span>
+                <span id="trapezium-width2-val" class="val-badge">1.0</span>
+              </div>
+              <input type="range" id="trapezium-width2" min="0.1" max="3.0" step="0.05" value="1.0">
+            </div>
+            <!-- Skew Angle -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>angle</span>
+                <span id="trapezium-skew-val" class="val-badge">90</span>
+              </div>
+              <input type="range" id="trapezium-skew" min="0" max="180" step="1" value="90">
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Image Settings Section -->
+        <div class="control-section collapsed" id="section-image-settings">
+          <div class="section-header" onclick="toggleSection('section-image-settings')">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path
+                  d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+              </svg>
+              <span>Image Settings</span>
+            </div>
+            <span class="chevron">▾</span>
+          </div>
+          <div class="section-body">
+
+            <!-- A. Background Image -->
+            <div class="sub-section-title">Background Image</div>
+
+            <div class="control-row">
+              <div class="file-upload-wrapper">
+                <label for="bg-image-upload" class="file-upload-label">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
+                  </svg>
+                  Upload Background
+                </label>
+                <input type="file" id="bg-image-upload" accept="image/*" onchange="uploadImageFile(this, true)">
+              </div>
+              <div id="bg-image-name" class="file-name-badge">image_2.jpg</div>
+            </div>
+
+            <button id="bg-image-enable" class="btn-action block-btn active">Disable Background Image</button>
+
+            <div class="control-row">
+              <div class="control-label">
+                <span>zoom</span>
+                <span id="bg-zoom-val" class="val-badge">1.0</span>
+              </div>
+              <input type="range" id="bg-zoom" min="0.1" max="5.0" step="0.05" value="1.0">
+            </div>
+
+            <div class="control-row">
+              <div class="control-label">
+                <span>move right/left</span>
+                <span id="bg-offset-x-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="bg-offset-x" min="-400" max="400" step="1" value="0">
+            </div>
+
+            <div class="control-row">
+              <div class="control-label">
+                <span>move up/down</span>
+                <span id="bg-offset-y-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="bg-offset-y" min="-400" max="400" step="1" value="0">
+            </div>
+
+            <!-- B. Masked Image -->
+            <div class="sub-section-title separator">Masked Image</div>
+
+            <div class="control-row">
+              <div class="file-upload-wrapper">
+                <label for="mask-image-upload" class="file-upload-label">
+                  <svg viewBox="0 0 24 24" width="16" height="16">
+                    <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z" />
+                  </svg>
+                  Upload Masked Image
+                </label>
+                <input type="file" id="mask-image-upload" accept="image/*" onchange="uploadImageFile(this, false)">
+              </div>
+              <div id="mask-image-name" class="file-name-badge">image_1.jpg</div>
+            </div>
+
+            <button id="mask-image-enable" class="btn-action block-btn">Use Image Mask</button>
+
+            <div class="control-row">
+              <div class="control-label">
+                <span>zoom</span>
+                <span id="fg-zoom-val" class="val-badge">1.0</span>
+              </div>
+              <input type="range" id="fg-zoom" min="0.1" max="5.0" step="0.05" value="1.0">
+            </div>
+
+            <div class="control-row">
+              <div class="control-label">
+                <span>move right/left</span>
+                <span id="fg-offset-x-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="fg-offset-x" min="-400" max="400" step="1" value="0">
+            </div>
+
+            <div class="control-row">
+              <div class="control-label">
+                <span>move up/down</span>
+                <span id="fg-offset-y-val" class="val-badge">0</span>
+              </div>
+              <input type="range" id="fg-offset-y" min="-400" max="400" step="1" value="0">
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 5. Dimensions Section -->
+        <div class="control-section collapsed" id="section-dimensions">
+          <div class="section-header" onclick="toggleSection('section-dimensions')">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path
+                  d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zM4 18V6h16v12H4z" />
+              </svg>
+              <span>Dimensions</span>
+            </div>
+            <span class="chevron">▾</span>
+          </div>
+          <div class="section-body">
+            <div class="dimension-buttons-row">
+              <button id="dim-1-1" class="dim-btn active" onclick="changeCanvasDimensions('1:1')">1:1</button>
+              <button id="dim-9-16" class="dim-btn" onclick="changeCanvasDimensions('9:16')">9:16</button>
+              <button id="dim-16-9" class="dim-btn" onclick="changeCanvasDimensions('16:9')">16:9</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. Add Spiral Section -->
+        <div class="control-section collapsed" id="section-add-spiral">
+          <div class="section-header" onclick="toggleSection('section-add-spiral')">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path
+                  d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+              </svg>
+              <span>Add spiral</span>
+            </div>
+            <span class="chevron">▾</span>
+          </div>
+          <div class="section-body">
+            <!-- Add/Remove Spiral button -->
+            <button id="add-spiral-btn" class="btn-action block-btn">Add Spiral</button>
+
+            <!-- Spiral Blend -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>Spiral Blend</span>
+                <span id="spiral-blend-val" class="val-badge">1.0</span>
+              </div>
+              <input type="range" id="spiral-blend" min="0" max="1" step="0.01" value="1.0">
+            </div>
+            <!-- Curve Spread -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>Curve Spread</span>
+                <span id="spiral-spread-val" class="val-badge">2.0</span>
+              </div>
+              <input type="range" id="spiral-spread" min="0.1" max="10.0" step="0.1" value="2.0">
+            </div>
+            <!-- Peak (Mid Ratio) -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>Peak (Mid Ratio)</span>
+                <span id="spiral-peak-val" class="val-badge">0.5</span>
+              </div>
+              <input type="range" id="spiral-peak" min="0" max="1" step="0.01" value="0.5">
+            </div>
+            <!-- Spiral Height -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>Spiral Height</span>
+                <span id="spiral-height-val" class="val-badge">1.25</span>
+              </div>
+              <input type="range" id="spiral-height" min="0.1" max="3.0" step="0.05" value="1.25">
+            </div>
+            <!-- Spiral Width -->
+            <div class="control-row">
+              <div class="control-label">
+                <span>Spiral Width</span>
+                <span id="spiral-width-val" class="val-badge">1.5</span>
+              </div>
+              <input type="range" id="spiral-width" min="0.1" max="5.0" step="0.05" value="1.5">
+            </div>
+          </div>
+        </div>
+
+        <!-- 7. Save Section -->
+        <div class="control-section collapsed" id="section-save">
+          <div class="section-header" onclick="toggleSection('section-save')">
+            <div class="section-title">
+              <svg viewBox="0 0 24 24" width="16" height="16">
+                <path
+                  d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 12h-4V8h-6v4H5l7 7 7-7z" />
+              </svg>
+              <span>Save</span>
+            </div>
+            <span class="chevron">▾</span>
+          </div>
+          <div class="section-body">
+            <button id="save-image-btn" class="btn-action block-btn">
+              <svg viewBox="0 0 24 24" width="16" height="16" style="fill: currentColor; margin-right: 4px;">
+                <path
+                  d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+              </svg>
+              Save Image
+            </button>
+
+            <button id="record-video-btn" class="btn-action block-btn">
+              <span class="recording-dot"></span>
+              Record Video
+            </button>
+            <div id="recording-status" class="recording-status-text">Ready to record</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right Canvas Area -->
+    <div id="canvasContainer" class="canvas-area"></div>
+  </div>
+
+  <!-- Wire Up UI state functions needed before sketch loads -->
+  <script>
+    function toggleSection(sectionId) {
+      const section = document.getElementById(sectionId);
+      if (section) {
+        section.classList.toggle('collapsed');
+      }
+    }
+  </script>
+  <img src="fl_logo.png" class="top-right-logo" alt="Logo">
+  <script src="sketch.js"></script>
+</body>
+
+</html>

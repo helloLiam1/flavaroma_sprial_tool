@@ -1,0 +1,22 @@
+{
+  "base": {
+    "skew": 97,
+    "n": 1,
+    "amount": 40,
+    "offset": 0,
+    "hScale": 1,
+    "w1": 0.4,
+    "w2": 0.4,
+    "sWidth": 0,
+    "hx": 24,
+    "hy": 71,
+    "hr": 255
+  },
+  "spiral": {
+    "blend": 1,
+    "spread": 2,
+    "peak": 0.5,
+    "height": 1,
+    "width": 1
+  }
+}

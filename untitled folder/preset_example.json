@@ -1,0 +1,42 @@
+{
+  "showSpiral": false,
+  "isRectangle": false,
+  "useImageMask": true,
+  "showBgImage": true,
+  "isAnimated": true,
+  "aspectRatio": "1:1",
+  "base": {
+    "skew": 90,
+    "n": 13,
+    "amount": 62,
+    "offset": 0.11,
+    "hScale": 1,
+    "w1": 0.85,
+    "w2": 1,
+    "sWidth": 0,
+    "sizeGradient": 0.38,
+    "hx": 0,
+    "hy": 0,
+    "hr": 116,
+    "fullCircleDiam": 1110,
+    "filterX": 0,
+    "filterY": 0
+  },
+  "spiral": {
+    "blend": 1,
+    "spread": 2,
+    "peak": 0.5,
+    "height": 1.25,
+    "width": 1.5
+  },
+  "image": {
+    "fgZoom": 1,
+    "fgOffsetX": 0,
+    "fgOffsetY": 0,
+    "bgZoom": 1.45,
+    "bgOffsetX": 0,
+    "bgOffsetY": 0,
+    "fgDataUrl": null,
+    "bgDataUrl": null
+  }
+}
