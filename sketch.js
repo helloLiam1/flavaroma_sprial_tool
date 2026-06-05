@@ -199,6 +199,7 @@ const animDepth = 0.5;
 const spatialFreq = 1.2;
 let isAnimated = true;
 let widthAnimationEnabled = true;
+let animation2Enabled = false;
 
 // --- UI & State Variables ---
 let skewSlider, nSlider, amountSlider, offsetSlider;
@@ -266,6 +267,7 @@ let setImageMaskEnabled;
 let setBgImageVisible;
 let setRotateImageWithShape;
 let setIsAnimated;
+let setAnimation2Enabled;
 let loadPreset;
 let isSidebarHidden = false;
 let currentRatio = '1:1';
@@ -333,8 +335,21 @@ window.toggleWidthAnimation = function () {
   widthAnimationEnabled = !widthAnimationEnabled;
   const btn = document.getElementById('toggle-width-anim-btn');
   if (btn) {
-    btn.innerHTML = widthAnimationEnabled ? "Animation: ON" : "Animation: OFF";
+    btn.innerHTML = widthAnimationEnabled ? "Animation 1: ON" : "Animation 1: OFF";
     if (widthAnimationEnabled) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  }
+};
+
+window.toggleAnimation2 = function () {
+  animation2Enabled = !animation2Enabled;
+  const btn = document.getElementById('toggle-anim2-btn');
+  if (btn) {
+    btn.innerHTML = animation2Enabled ? "Animation 2: ON" : "Animation 2: OFF";
+    if (animation2Enabled) {
       btn.classList.add('active');
     } else {
       btn.classList.remove('active');
@@ -689,6 +704,19 @@ function setup() {
     }
   };
 
+  setAnimation2Enabled = function (enabled) {
+    animation2Enabled = enabled;
+    const btn = document.getElementById('toggle-anim2-btn');
+    if (btn) {
+      btn.innerHTML = animation2Enabled ? "Animation 2: ON" : "Animation 2: OFF";
+      if (animation2Enabled) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    }
+  };
+
   // Bind element event listeners
   const shapeToggleEl = document.getElementById('shape-toggle-btn');
   if (shapeToggleEl) {
@@ -735,6 +763,7 @@ function setup() {
         showBgImage: showBgImage,
         rotateImageWithShape: rotateImageWithShape,
         isAnimated: isAnimated,
+        animation2Enabled: animation2Enabled,
         aspectRatio: currentRatio,
         base: {
           skew: skewSlider.value(),
@@ -898,6 +927,12 @@ function setup() {
 
     if (data.isAnimated !== undefined) {
       setIsAnimated(data.isAnimated);
+    }
+
+    if (data.animation2Enabled !== undefined) {
+      setAnimation2Enabled(data.animation2Enabled);
+    } else {
+      setAnimation2Enabled(false);
     }
 
     if (data.aspectRatio !== undefined) {
@@ -1235,75 +1270,121 @@ class TrapeziumRing {
     let target = pg || window;
     target.fill(0);
     target.noStroke();
-    for (let j = 0; j < this.amount; j++) {
-      target.push();
-      let globalTheta = radians(
-        currentMasterRotation + this.rotationOffset + j * step,
-      );
-      let inX = this.holeOffsetX + this.holeRadius * cos(globalTheta);
-      let inY = this.holeOffsetY + this.holeRadius * sin(globalTheta);
-      let outX = full_circle_diam * cos(globalTheta);
-      let outY = full_circle_diam * sin(globalTheta);
-      let startX = lerp(inX, outX, this.rStart);
-      let startY = lerp(inY, outY, this.rStart);
-      let endX = lerp(inX, outX, this.rEnd);
-      let endY = lerp(inY, outY, this.rEnd);
-      let d1 = dist(0, 0, startX, startY);
-      let d2 = dist(0, 0, endX, endY);
-      let spiral_width = map(
-        this.spiralWidthRatio,
-        0,
-        1,
-        1,
-        (j + 1) / this.amount,
-      );
 
-      // --- Symmetrical Wave Pulse ---
-      let symIndex = min(j, this.amount - 1 - j);
-      let maxSymIndex = (this.amount - 1) / 2;
-      let normalizedSym = maxSymIndex > 0 ? symIndex / maxSymIndex : 0;
-      let phaseOffset = -this.i * 0.9 - normalizedSym * TWO_PI;
-      let widthPulse = widthAnimationEnabled ? (1.0 + animDepth * sin(animTime + phaseOffset)) : 1.0;
+    let rStart_active = this.rStart;
+    let rEnd_active = this.rEnd;
+    let rotationOffset_active = this.rotationOffset;
+    let active_i = this.i;
+    let width_mult_active = 1.0;
 
-      let w1 = 2 * d1 * Math.tan(solidAngle / 2) * this.w1Scale * spiral_width * widthPulse;
-      let w2 = 2 * d2 * Math.tan(solidAngle / 2) * this.w2Scale * spiral_width * widthPulse;
-      let dx = endX - startX;
-      let dy = endY - startY;
-      let outwardX = dx * cos(-globalTheta) - dy * sin(-globalTheta);
-      let outwardY = dx * sin(-globalTheta) + dy * cos(-globalTheta);
-      let localEndX = -outwardY * this.hScale;
-      let localEndY = outwardX * this.hScale;
-      let skewRad = radians(constrain(this.skewAngle, 0.1, 179.9));
-      localEndX += localEndY / tan(skewRad);
-      target.translate(startX, startY);
-      target.rotate(globalTheta);
-      target.rotate(radians(-90));
-      if (isRectangle) {
-        let tiltAngle = atan2(localEndY, localEndX) - HALF_PI;
-        target.rotate(tiltAngle);
-        target.quad(
-          -w1 / 2,
-          0,
-          w1 / 2,
-          0,
-          w1 / 2,
-          dist(0, 0, localEndX, localEndY),
-          -w1 / 2,
-          dist(0, 0, localEndX, localEndY),
-        );
+    let drawFading = false;
+    let rStart_fade, rEnd_fade, rotationOffset_fade, active_i_fade, width_mult_fade;
+
+    if (animation2Enabled) {
+      let p = (animTime * 0.15) % 1.0;
+      let rads = getNormalizedRadii(this.n, sizeGradientSlider.value());
+
+      if (this.i === 0) {
+        rStart_active = rads[0];
+        rEnd_active = lerp(rads[0], rads[1], p);
+        rotationOffset_active = 0;
+        active_i = 0;
       } else {
-        target.quad(
-          -w1 / 2,
-          0,
-          w1 / 2,
-          0,
-          localEndX + w2 / 2,
-          localEndY,
-          localEndX - w2 / 2,
-          localEndY,
-        );
+        rStart_active = lerp(rads[this.i - 1], rads[this.i], p);
+        rEnd_active = lerp(rads[this.i], rads[this.i + 1], p);
+
+        let ringTwist = 360 / this.n;
+        let offsetRatio = offsetSlider.value();
+        rotationOffset_active = lerp((this.i - 1) * ringTwist * offsetRatio, this.i * ringTwist * offsetRatio, p);
+        active_i = lerp(this.i - 1, this.i, p);
       }
-      target.pop();
+
+      drawFading = true;
+      rStart_fade = lerp(rads[this.i], rads[this.i + 1], p);
+      rEnd_fade = rads[this.i + 1];
+      rotationOffset_fade = this.rotationOffset;
+      active_i_fade = this.i;
+      width_mult_fade = 1.0;
+    }
+
+    let passes = drawFading ? 2 : 1;
+    for (let pass = 0; pass < passes; pass++) {
+      let rS = (pass === 0) ? rStart_active : rStart_fade;
+      let rE = (pass === 0) ? rEnd_active : rEnd_fade;
+      let rotOffset = (pass === 0) ? rotationOffset_active : rotationOffset_fade;
+      let act_i = (pass === 0) ? active_i : active_i_fade;
+      let wMult = (pass === 0) ? width_mult_active : width_mult_fade;
+
+      for (let j = 0; j < this.amount; j++) {
+        target.push();
+        let globalTheta = radians(
+          currentMasterRotation + rotOffset + j * step,
+        );
+        let inX = this.holeOffsetX + this.holeRadius * cos(globalTheta);
+        let inY = this.holeOffsetY + this.holeRadius * sin(globalTheta);
+        let outX = full_circle_diam * cos(globalTheta);
+        let outY = full_circle_diam * sin(globalTheta);
+        let startX = lerp(inX, outX, rS);
+        let startY = lerp(inY, outY, rS);
+        let endX = lerp(inX, outX, rE);
+        let endY = lerp(inY, outY, rE);
+        let d1 = dist(0, 0, startX, startY);
+        let d2 = dist(0, 0, endX, endY);
+        let spiral_width = map(
+          this.spiralWidthRatio,
+          0,
+          1,
+          1,
+          (j + 1) / this.amount,
+        );
+
+        // --- Symmetrical Wave Pulse ---
+        let symIndex = min(j, this.amount - 1 - j);
+        let maxSymIndex = (this.amount - 1) / 2;
+        let normalizedSym = maxSymIndex > 0 ? symIndex / maxSymIndex : 0;
+        let phaseOffset = -act_i * 0.9 - normalizedSym * TWO_PI;
+        let widthPulse = widthAnimationEnabled ? (1.0 + animDepth * sin(animTime + phaseOffset)) : 1.0;
+
+        let w1 = 2 * d1 * Math.tan(solidAngle / 2) * this.w1Scale * spiral_width * widthPulse * wMult;
+        let w2 = 2 * d2 * Math.tan(solidAngle / 2) * this.w2Scale * spiral_width * widthPulse * wMult;
+        let dx = endX - startX;
+        let dy = endY - startY;
+        let outwardX = dx * cos(-globalTheta) - dy * sin(-globalTheta);
+        let outwardY = dx * sin(-globalTheta) + dy * cos(-globalTheta);
+        let localEndX = -outwardY * this.hScale;
+        let localEndY = outwardX * this.hScale;
+        let skewRad = radians(constrain(this.skewAngle, 0.1, 179.9));
+        localEndX += localEndY / tan(skewRad);
+        target.translate(startX, startY);
+        target.rotate(globalTheta);
+        target.rotate(radians(-90));
+        if (isRectangle) {
+          let tiltAngle = atan2(localEndY, localEndX) - HALF_PI;
+          target.rotate(tiltAngle);
+          target.quad(
+            -w1 / 2,
+            0,
+            w1 / 2,
+            0,
+            w1 / 2,
+            dist(0, 0, localEndX, localEndY),
+            -w1 / 2,
+            dist(0, 0, localEndX, localEndY),
+          );
+        } else {
+          target.quad(
+            -w1 / 2,
+            0,
+            w1 / 2,
+            0,
+            localEndX + w2 / 2,
+            localEndY,
+            localEndX - w2 / 2,
+            localEndY,
+          );
+        }
+        target.pop();
+      }
     }
   }
 }
@@ -1352,80 +1433,125 @@ class SpiralRing {
     target.noStroke();
     let dynamicMidIndex = (this.amount - 1) * this.midIndexRatio;
 
-    for (let j = 0; j < this.amount; j++) {
-      target.push();
-      let globalTheta = radians(
-        currentMasterRotation + this.rotationOffset + j * step,
-      );
-      let inX = this.holeOffsetX + this.holeRadius * cos(globalTheta);
-      let inY = this.holeOffsetY + this.holeRadius * sin(globalTheta);
-      let outX = full_circle_diam * cos(globalTheta);
-      let outY = full_circle_diam * sin(globalTheta);
-      let startX = lerp(inX, outX, this.rStart);
-      let startY = lerp(inY, outY, this.rStart);
+    let rStart_active = this.rStart;
+    let rEnd_active = this.rEnd;
+    let rotationOffset_active = this.rotationOffset;
+    let active_i = this.i;
+    let width_mult_active = 1.0;
 
-      let d1 = dist(0, 0, startX, startY);
+    let drawFading = false;
+    let rStart_fade, rEnd_fade, rotationOffset_fade, active_i_fade, width_mult_fade;
 
-      // --- Symmetrical Wave Pulse ---
-      let symIndex = min(j, this.amount - 1 - j);
-      let maxSymIndex = (this.amount - 1) / 2;
-      let normalizedSym = maxSymIndex > 0 ? symIndex / maxSymIndex : 0;
-      let phaseOffset = -this.i * 0.9 - normalizedSym * TWO_PI;
-      let widthPulse = widthAnimationEnabled ? (1.0 + animDepth * sin(animTime + phaseOffset)) : 1.0;
+    if (animation2Enabled) {
+      let p = (animTime * 0.15) % 1.0;
+      let rads = getNormalizedRadii(this.n, sizeGradientSlider.value());
 
-      let w1 = 2 * d1 * Math.tan(solidAngle / 2) * this.wScale * widthPulse;
-
-      let endX = lerp(inX, outX, this.rEnd);
-      let endY = lerp(inY, outY, this.rEnd);
-      let dx = endX - startX;
-      let dy = endY - startY;
-      let outwardX = dx * cos(-globalTheta) - dy * sin(-globalTheta);
-      let outwardY = dx * sin(-globalTheta) + dy * cos(-globalTheta);
-      let localEndX = -outwardY;
-      let localEndY = outwardX;
-      let baseHeight = dist(0, 0, localEndX, localEndY);
-
-      // Restored proper math to prevent zero division and mathematical tearing 
-      let x = 0;
-      if (j === dynamicMidIndex) {
-        x = 0;
-      } else if (j < dynamicMidIndex) {
-        x = dynamicMidIndex === 0 ? 0 : map(j, 0, dynamicMidIndex, -2.5, 0);
+      if (this.i === 0) {
+        rStart_active = rads[0];
+        rEnd_active = lerp(rads[0], rads[1], p);
+        rotationOffset_active = 0;
+        active_i = 0;
       } else {
-        x = dynamicMidIndex === this.amount - 1 ? 0 : map(j, dynamicMidIndex, this.amount - 1, 0, 2.5);
+        rStart_active = lerp(rads[this.i - 1], rads[this.i], p);
+        rEnd_active = lerp(rads[this.i], rads[this.i + 1], p);
+
+        let ringTwist = 360 / this.n;
+        let offsetRatio = offsetSlider.value();
+        rotationOffset_active = lerp((this.i - 1) * ringTwist * offsetRatio, this.i * ringTwist * offsetRatio, p);
+        active_i = lerp(this.i - 1, this.i, p);
       }
 
-      let spiralHeightTarget = (baseHeight / 2) * exp(-(x * x) / this.curveSpread);
-      let currentHeight = lerp(baseHeight, spiralHeightTarget, this.blendRatio) * this.hScale;
+      drawFading = true;
+      rStart_fade = lerp(rads[this.i], rads[this.i + 1], p);
+      rEnd_fade = rads[this.i + 1];
+      rotationOffset_fade = this.rotationOffset;
+      active_i_fade = this.i;
+      width_mult_fade = 1.0;
+    }
 
-      let targetAddedDistance = 0;
-      if (j <= dynamicMidIndex) {
-        targetAddedDistance = dynamicMidIndex === 0 ? baseHeight / 2 : map(j, 0, dynamicMidIndex, 0, baseHeight / 2);
-      } else {
-        targetAddedDistance = baseHeight - spiralHeightTarget;
+    let passes = drawFading ? 2 : 1;
+    for (let pass = 0; pass < passes; pass++) {
+      let rS = (pass === 0) ? rStart_active : rStart_fade;
+      let rE = (pass === 0) ? rEnd_active : rEnd_fade;
+      let rotOffset = (pass === 0) ? rotationOffset_active : rotationOffset_fade;
+      let act_i = (pass === 0) ? active_i : active_i_fade;
+      let wMult = (pass === 0) ? width_mult_active : width_mult_fade;
+
+      for (let j = 0; j < this.amount; j++) {
+        target.push();
+        let globalTheta = radians(
+          currentMasterRotation + rotOffset + j * step,
+        );
+        let inX = this.holeOffsetX + this.holeRadius * cos(globalTheta);
+        let inY = this.holeOffsetY + this.holeRadius * sin(globalTheta);
+        let outX = full_circle_diam * cos(globalTheta);
+        let outY = full_circle_diam * sin(globalTheta);
+        let startX = lerp(inX, outX, rS);
+        let startY = lerp(inY, outY, rS);
+
+        let d1 = dist(0, 0, startX, startY);
+
+        // --- Symmetrical Wave Pulse ---
+        let symIndex = min(j, this.amount - 1 - j);
+        let maxSymIndex = (this.amount - 1) / 2;
+        let normalizedSym = maxSymIndex > 0 ? symIndex / maxSymIndex : 0;
+        let phaseOffset = -act_i * 0.9 - normalizedSym * TWO_PI;
+        let widthPulse = widthAnimationEnabled ? (1.0 + animDepth * sin(animTime + phaseOffset)) : 1.0;
+
+        let w1 = 2 * d1 * Math.tan(solidAngle / 2) * this.wScale * widthPulse * wMult;
+
+        let endX = lerp(inX, outX, rE);
+        let endY = lerp(inY, outY, rE);
+        let dx = endX - startX;
+        let dy = endY - startY;
+        let outwardX = dx * cos(-globalTheta) - dy * sin(-globalTheta);
+        let outwardY = dx * sin(-globalTheta) + dy * cos(-globalTheta);
+        let localEndX = -outwardY;
+        let localEndY = outwardX;
+        let baseHeight = dist(0, 0, localEndX, localEndY);
+
+        // Restored proper math to prevent zero division and mathematical tearing 
+        let x = 0;
+        if (j === dynamicMidIndex) {
+          x = 0;
+        } else if (j < dynamicMidIndex) {
+          x = dynamicMidIndex === 0 ? 0 : map(j, 0, dynamicMidIndex, -2.5, 0);
+        } else {
+          x = dynamicMidIndex === this.amount - 1 ? 0 : map(j, dynamicMidIndex, this.amount - 1, 0, 2.5);
+        }
+
+        let spiralHeightTarget = (baseHeight / 2) * exp(-(x * x) / this.curveSpread);
+        let currentHeight = lerp(baseHeight, spiralHeightTarget, this.blendRatio) * this.hScale;
+
+        let targetAddedDistance = 0;
+        if (j <= dynamicMidIndex) {
+          targetAddedDistance = dynamicMidIndex === 0 ? baseHeight / 2 : map(j, 0, dynamicMidIndex, 0, baseHeight / 2);
+        } else {
+          targetAddedDistance = baseHeight - spiralHeightTarget;
+        }
+
+        let addedDistance = lerp(0, targetAddedDistance, this.blendRatio);
+
+        let skewRad = radians(constrain(this.skewAngle, 0.1, 179.9));
+        let skewShift = currentHeight / tan(skewRad);
+
+        target.translate(startX, startY);
+        target.rotate(globalTheta);
+        target.rotate(radians(-90));
+        target.rotate(atan2(localEndY, localEndX) - HALF_PI);
+
+        target.quad(
+          -w1 / 2,
+          addedDistance,
+          w1 / 2,
+          addedDistance,
+          w1 / 2 + skewShift,
+          addedDistance + currentHeight,
+          -w1 / 2 + skewShift,
+          addedDistance + currentHeight,
+        );
+        target.pop();
       }
-
-      let addedDistance = lerp(0, targetAddedDistance, this.blendRatio);
-
-      let skewRad = radians(constrain(this.skewAngle, 0.1, 179.9));
-      let skewShift = currentHeight / tan(skewRad);
-
-      target.translate(startX, startY);
-      target.rotate(globalTheta);
-      target.rotate(radians(-90));
-      target.rotate(atan2(localEndY, localEndX) - HALF_PI);
-
-      target.quad(
-        -w1 / 2,
-        addedDistance,
-        w1 / 2,
-        addedDistance,
-        w1 / 2 + skewShift,
-        addedDistance + currentHeight,
-        -w1 / 2 + skewShift,
-        addedDistance + currentHeight,
-      );
-      target.pop();
     }
   }
 }
