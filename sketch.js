@@ -1284,17 +1284,18 @@ class TrapeziumRing {
       let p = (animTime * 0.15) % 1.0;
       let rads = getNormalizedRadii(this.n, sizeGradientSlider.value());
 
+      let ringTwist = 360 / this.n;
+      let offsetRatio = offsetSlider.value();
+
       if (this.i === 0) {
         rStart_active = rads[0];
         rEnd_active = lerp(rads[0], rads[1], p);
         rotationOffset_active = 0;
         active_i = 0;
       } else {
-        rStart_active = lerp(rads[this.i - 1], rads[this.i], p);
+        rStart_active = rads[this.i];
         rEnd_active = lerp(rads[this.i], rads[this.i + 1], p);
 
-        let ringTwist = 360 / this.n;
-        let offsetRatio = offsetSlider.value();
         rotationOffset_active = lerp((this.i - 1) * ringTwist * offsetRatio, this.i * ringTwist * offsetRatio, p);
         active_i = lerp(this.i - 1, this.i, p);
       }
@@ -1302,8 +1303,14 @@ class TrapeziumRing {
       drawFading = true;
       rStart_fade = lerp(rads[this.i], rads[this.i + 1], p);
       rEnd_fade = rads[this.i + 1];
-      rotationOffset_fade = this.rotationOffset;
-      active_i_fade = this.i;
+      
+      if (this.i === this.n - 1) {
+        rotationOffset_fade = this.rotationOffset;
+        active_i_fade = this.i;
+      } else {
+        rotationOffset_fade = lerp(this.i * ringTwist * offsetRatio, (this.i + 1) * ringTwist * offsetRatio, p);
+        active_i_fade = lerp(this.i, this.i + 1, p);
+      }
       width_mult_fade = 1.0;
     }
 
@@ -1446,17 +1453,18 @@ class SpiralRing {
       let p = (animTime * 0.15) % 1.0;
       let rads = getNormalizedRadii(this.n, sizeGradientSlider.value());
 
+      let ringTwist = 360 / this.n;
+      let offsetRatio = offsetSlider.value();
+
       if (this.i === 0) {
         rStart_active = rads[0];
         rEnd_active = lerp(rads[0], rads[1], p);
         rotationOffset_active = 0;
         active_i = 0;
       } else {
-        rStart_active = lerp(rads[this.i - 1], rads[this.i], p);
+        rStart_active = rads[this.i];
         rEnd_active = lerp(rads[this.i], rads[this.i + 1], p);
 
-        let ringTwist = 360 / this.n;
-        let offsetRatio = offsetSlider.value();
         rotationOffset_active = lerp((this.i - 1) * ringTwist * offsetRatio, this.i * ringTwist * offsetRatio, p);
         active_i = lerp(this.i - 1, this.i, p);
       }
@@ -1464,8 +1472,14 @@ class SpiralRing {
       drawFading = true;
       rStart_fade = lerp(rads[this.i], rads[this.i + 1], p);
       rEnd_fade = rads[this.i + 1];
-      rotationOffset_fade = this.rotationOffset;
-      active_i_fade = this.i;
+      
+      if (this.i === this.n - 1) {
+        rotationOffset_fade = this.rotationOffset;
+        active_i_fade = this.i;
+      } else {
+        rotationOffset_fade = lerp(this.i * ringTwist * offsetRatio, (this.i + 1) * ringTwist * offsetRatio, p);
+        active_i_fade = lerp(this.i, this.i + 1, p);
+      }
       width_mult_fade = 1.0;
     }
 
